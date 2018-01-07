@@ -1,6 +1,6 @@
 // TODO
 // [] allow overwriting so if I want to make a track square a finish or start square I can
-
+// [] get rid of / mitigate global usage
 
 let grid = []
 let cWidth = 50
@@ -60,6 +60,25 @@ let state = (function(){
 
 function setup(){
     createCanvas(cWidth * cellW + cellW, cHeight * cellH + cellH)   
+}
+
+function loadTrack(trackToLoad = savedTrack){
+    let f = function(arr, dict) {
+        for(i in arr){
+            let newKey = arr[i].x + "&" + arr[i].y
+            dict[newKey] = arr[i] 
+        }    
+    }
+
+    // reset all of the track sets
+    squares = {}
+    finish = {}
+    start = {}
+
+    // load the saved track var
+    f(trackToLoad["track"], squares)    
+    f(trackToLoad["start"], start)    
+    f(trackToLoad["finish"], finish)    
 }
 
 function buildGrid(){

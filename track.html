@@ -6,8 +6,10 @@
 <button id="start-train-btn">Train</button>
 <button id="fill-track-btn">Fill</button>
 <button id="print-track-btn">Print</button>
+<button id="load-track-btn">Load</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.16/p5.min.js"></script>
+<script src="savedTrack.js"></script>
 <script src="track.js"></script>
 <script src="montecarlo.js"></script>
 <script>
@@ -39,6 +41,9 @@ setInterval(function(){
 trackStatusDisplay.innerHTML = "Track is Invalid :("
 stateDisplay.innerHTML = setStateDisplay()
 
+document.getElementById("load-track-btn").addEventListener("click", function(e){
+    loadTrack()
+})
 document.getElementById("print-track-btn").addEventListener("click", function(e) {
     printOutStates()
 })

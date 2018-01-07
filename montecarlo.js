@@ -7,11 +7,11 @@
 
 let actions = [[0,0],[1,1],[-1,-1],[1,0],[0,1],[1,-1],[-1,1],[-1,0],[0,-1]]
 
-let trackSqrs = Object.values(squares)
-let startSqrs = Object.values(start)
-let finishSqrs = Object.values(finish)
-
-let states = startSqrs.concat(trackSqrs).concat(finishSqrs)
+// let trackSqrs = Object.values(squares)
+// let startSqrs = Object.values(start)
+// let finishSqrs = Object.values(finish)
+// 
+// let states = startSqrs.concat(trackSqrs).concat(finishSqrs)
 
 let serializeState = function(s) {
     return s.x + "&" + s.y
@@ -39,15 +39,15 @@ let Car = function(pos) {
             // else rewards(s,a).push(-5)
         },
         updateVelocity: function(unit) {
-            velocity.x += unit[0]
-            velocity.y += unit[1]
+            velocity.x += unit[0] * cellW
+            velocity.y += unit[1] * cellH
 
-            if(velocity.y > 0) velocity.y -= 1
-            if(velocity.x < 0) velocity.x += 1 // only right turns
+            if(velocity.y > 0) velocity.y -= 1 * cellH
+            if(velocity.x < 0) velocity.x += 1 * cellW// only right turns
 
             // clamp both components to be less than or equal to five
-            if(velocity.y < -5) velocity.y += 1
-            if(velocity.x > 5) velocity.x -= 1
+            if(velocity.y < -5 * cellH) velocity.y += 1 * cellH
+            if(velocity.x > 5 * cellW) velocity.x -= 1 * cellW
         },
         step: function() {
             // this function will consider the present velocity
@@ -64,12 +64,12 @@ let Car = function(pos) {
             if(!this.onTrack(hypoPos)){
                 // move in one of three directions
                 let hp1 = {
-                    x: p.x + v.x,
-                    y: p.y
+                    x: position.x + velocity.x,
+                    y: position.y
                 }
                 let hp2 = {
-                    x: p.x,
-                    y: p.y + v.y
+                    x: position.x,
+                    y: position.y + velocity.y
                 }
                 if(this.onTrack(hp1)){
                     position.x += velocity.x
@@ -81,9 +81,9 @@ let Car = function(pos) {
                     let h2 = position
                     let h3 = position
 
-                    h1.x += 1
-                    h2.x -= 1
-                    h3.y += 1
+                    h1.x += 1 * cellW
+                    h2.x -= 1 * cellW
+                    h3.y += 1 * cellH
 
                     if(this.onTrack(h1)) {
                         position = h1
@@ -103,13 +103,13 @@ let Car = function(pos) {
             let p = this.getPosition()
             
             // return whether or not we've arrived at the finish 
-            let result = finishSqrs.reduce((acc, cv) => {
+            let result = Object.values(finish).reduce((acc, cv) => {
                 return acc || (cv.x == p.x && cv.y == p.y)
-            })
+            }, false)
             return result
         },
         onTrack: function(pos) {
-            return squares[serializeState(pos)] != undefined 
+            return squares[serializeState(pos)] != undefined || start[serializeState(pos)] != undefined || finish[serializeState(pos)] != undefined
         }
     }
 
@@ -164,11 +164,9 @@ let Returns = function() {
 }
 
 // for on-policy control, arbitrarily init an e-soft (p(s,a) > 0 for all (s,a))
-let Policy = function() {
-    
-    let serializeState = function(s) {
-        return s.x + "&" + s.y
-    }
+let Policy = function() { 
+
+    let states = Object.values(squares).concat(Object.values(finish)).concat(Object.values(start))    
 
     let initializePolicy = function() {
         let p = {}
@@ -178,30 +176,36 @@ let Policy = function() {
         }
         return p
     }
+
+    return initializePolicy()
 }
 
 let getMaxAction = function(s) {
+    console.log("Action array is: ", s)
     let m = s.reduce((acc, cv) => Math.max(acc, cv))
-    return m
+    return s.indexOf(m)
 }
 
 let generateEpisode = function(policy) {
     // generate a sequence of states and actions from the policy
-    let pos = startSqrs
+    let pos = Object.values(start)[0]
     let c = Car(pos)
     let pairs = []
     while(true) {
-        let action = getMaxAction(p[serializeState(pos)])
+        console.log("Current pos is: ", JSON.stringify(pos))
+        let action = getMaxAction(policy[serializeState(pos)])
         // see the result of hypothetically applying the action
         // if it would take you off the track, then don't do it (do inc so that you stay on the track) 
         // else then take the action
         // let c.updateVelocity(action)
 
         pairs.push([pos, action])
-
+        console.log("Max action is: ", action)
+        console.log("Current action, is: ", actions[action])  
         c.updateVelocity(actions[action])
         pos = c.step()         
-
+        console.log("Pos after step: ", JSON.stringify(pos))
+        console.log("New action set: ", policy[serializeState(pos)].toString())
         // check if we're done
         if(c.atFinish()) break
     }

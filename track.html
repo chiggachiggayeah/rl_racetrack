@@ -1,0 +1,64 @@
+<div id="state-display"></div>
+<div id="track-status"></div>
+<button id="draw-track-btn">Draw Track</button>
+<button id="draw-finish-btn">Draw Finish</button>
+<button id="draw-start-btn">Draw Start</button>
+<button id="start-train-btn">Train</button>
+<button id="fill-track-btn">Fill</button>
+<button id="print-track-btn">Print</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.16/p5.min.js"></script>
+<script src="track.js"></script>
+<script src="montecarlo.js"></script>
+<script>
+
+let setStateDisplay = function() {
+    if(state.isDrawingTrack()) return "Drawing Track"
+    if(state.isDrawingFinish()) return "Drawing Finish"
+    if(state.isDrawingStart()) return "Drawing Start"
+    if(state.isTraining()) return "Training"
+}
+
+let stateDisplay = document.getElementById("state-display")
+let trackStatusDisplay = document.getElementById("track-status")
+let trackValidity = false
+
+let trackIsValid = function() {
+    return Object.values(start).length == 1 && Object.values(squares).length > 1 && Object.values(finish).length >= 1
+}
+
+setInterval(function(){
+    if(trackIsValid()) {
+        if(!trackValidity){
+            trackStatusDisplay.innerHTML = "Track is Valid!"
+            trackValidity = true
+        }    
+    } 
+}, 1000)
+
+trackStatusDisplay.innerHTML = "Track is Invalid :("
+stateDisplay.innerHTML = setStateDisplay()
+
+document.getElementById("print-track-btn").addEventListener("click", function(e) {
+    printOutStates()
+})
+document.getElementById("fill-track-btn").addEventListener("click", function(e) {
+    fillTrack()
+})
+document.getElementById("draw-track-btn").addEventListener("click", function(e) {
+    state.drawTrack()
+    stateDisplay.innerHTML = setStateDisplay()
+})
+document.getElementById("draw-finish-btn").addEventListener("click", function(e) {
+    state.drawFinish()
+    stateDisplay.innerHTML = setStateDisplay()
+})
+document.getElementById("draw-start-btn").addEventListener("click", function(e) {
+    state.drawStart()
+    stateDisplay.innerHTML = setStateDisplay()
+})
+document.getElementById("start-train-btn").addEventListener("click", function(e) {
+    state.startTraining()
+    stateDisplay.innerHTML = setStateDisplay()
+})
+</script>

@@ -62,5 +62,8 @@ describe('Montecarlo.js', function() {
             })
         })
     })
+    describe("#atFinish", function(){
+        loadTrack(testTrack)
+    })
 })
 

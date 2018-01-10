@@ -1,6 +1,6 @@
 // TODO
 // [] allow overwriting so if I want to make a track square a finish or start square I can
-// [] get rid of / mitigate global usage
+// [] get rid of / mitigate global usage (could scope these with {}
 
 let grid = []
 let cWidth = 50
@@ -11,6 +11,7 @@ let squares = {}
 let start = {}
 let finish = {}
 let squaresArr = {} //<- change squares to a nested array [x][y]
+let curEpisode = []
 
 let state = (function(){
     let drawingStart = false
@@ -127,6 +128,14 @@ function drawSquares() {
     }
 
      
+}
+
+function drawCurEpisode() {
+    for(ind in curEpisode){
+        let pos = curEpisode[ind][0]
+        fill(0, 0, 255)
+        rect(pos.x, pos.y, cellW, cellH)
+    }
 }
 
 function addToTrack() {
@@ -253,4 +262,5 @@ function draw() {
     // rect(cellW, cellH, cellW, cellH)
     buildGrid()
     drawSquares()
+    drawCurEpisode()
 }

@@ -33,10 +33,31 @@ let Car = function(pos) {
         getPosition: function() {
             return position
         },
-        getReward: function() {
+        getReward: function(position = position) {
             // have we tried to head off the track?
             // if not then rewards(s, a).push(-1)
             // else rewards(s,a).push(-5)
+            let p1 = {
+                x: position.x + cellW,
+                y: position.y
+            }
+            let p2 = {
+                x: position.x - cellW,
+                y: position.y
+            }
+            let p3 = {
+                x: position.x,
+                y: position.y - cellH
+            }
+            let p4 = {
+                x: position.x,
+                y: position.y + cellH
+            }
+            if(!this.onTrack(p1) || !this.onTrack(p2) || !this.onTrack(p3) || !this.onTrack(p4)){
+                return -5
+            } else {
+                return -1
+            }
         },
         updateVelocity: function(unit) {
             velocity.x += unit[0] * cellW
@@ -164,15 +185,35 @@ let Returns = function() {
 }
 
 // for on-policy control, arbitrarily init an e-soft (p(s,a) > 0 for all (s,a))
-let Policy = function() { 
+let Policy = function Policy() { 
+    
+    let probs = [.25, .20, .10, .05, .02, .10, .05, .01, .22]
+    
 
     let states = Object.values(squares).concat(Object.values(finish)).concat(Object.values(start))    
 
+    let sampleWithout = function sampleWithout(arr) {
+        let l = arr.length
+        let copy = arr.slice()
+        let sampledInd = -1
+        let sampledItem = -1
+        let samples = []
+        while(copy.length > 0){
+            sampledInd = Math.floor(Math.random() * copy.length) 
+            sampledItem = copy.splice(sampledInd, 1)[0] 
+            samples.push(sampledItem)
+        }
+
+        return samples
+    }
+
     let initializePolicy = function() {
         let p = {}
-        for(i in states) {
+        for(let i in states) {
             p[serializeState(states[i])] = []
-            for(ind in actions) p[serializeState(states[i])].push(1/actions.length)
+            for(let ind in actions){
+                p[serializeState(states[i])] = sampleWithout(probs)
+            }        
         }
         return p
     }
@@ -180,10 +221,23 @@ let Policy = function() {
     return initializePolicy()
 }
 
-let getMaxAction = function(s) {
+let getMaxAction = function getMaxAction(s) {
     console.log("Action array is: ", s)
     let m = s.reduce((acc, cv) => Math.max(acc, cv))
     return s.indexOf(m)
+}
+
+let getAction = function getAction(probs) {
+    let guess = Math.random()
+    let ind = 0
+    let total = 0
+    while(ind < probs.length){
+        total += probs[ind] 
+        if(guess <= total){
+            return ind
+        }
+        ind++ 
+    }
 }
 
 let generateEpisode = function(policy) {
@@ -191,29 +245,32 @@ let generateEpisode = function(policy) {
     let pos = Object.values(start)[0]
     let c = Car(pos)
     let pairs = []
+    let count = 100
     while(true) {
-        console.log("Current pos is: ", JSON.stringify(pos))
-        let action = getMaxAction(policy[serializeState(pos)])
+        // console.log("Current pos is: ", JSON.stringify(pos))
+        // let action = getMaxAction(policy[serializeState(pos)])
+        let action = getAction(policy[serializeState(pos)])
         // see the result of hypothetically applying the action
         // if it would take you off the track, then don't do it (do inc so that you stay on the track) 
         // else then take the action
         // let c.updateVelocity(action)
 
         pairs.push([pos, action])
-        console.log("Max action is: ", action)
-        console.log("Current action, is: ", actions[action])  
+        // console.log("Max action is: ", action)
+        // console.log("Current action, is: ", actions[action])  
         c.updateVelocity(actions[action])
         pos = c.step()         
-        console.log("Pos after step: ", JSON.stringify(pos))
-        console.log("New action set: ", policy[serializeState(pos)].toString())
+        // console.log("Pos after step: ", JSON.stringify(pos))
+        // console.log("New action set: ", policy[serializeState(pos)].toString())
         // check if we're done
         if(c.atFinish()) break
+        // count -= 1
     }
 
     return pairs
 }
 
-let onPolicy = function() {
+let onPolicy = function(p = Policy(), returns = {}, actionValueFunction = {}) {
     // init policy
     // init action values
     // init returns
@@ -227,6 +284,72 @@ let onPolicy = function() {
         //  R(s,a).append(r)
         //  Q(s,a) = mean(R(s,a))
     // foreach s in the episode, policy improve with e-greedy
+    let serializeStateAndAction = function serializeStateAndAction(state, actionInd){
+        let str = state.x + "&" + state.y + "&" + actionInd 
+        return str
+    }
+    let mean = function mean(list) {
+        let total = list.reduce((acc, cv) => acc + cv)
+        return total / list.length
+    } 
     
+    //let p = Policy() 
+    
+    let episode = generateEpisode(p)
+    let epsilon = 0.001 // a tiny number 
+    // let actionValueFunction = {}
+    let c = Car(episode[0][0])
+
+    // TODO: get rid of this global
+    // this sets curEpisode so track.js can draw what just happened
+    curEpisode = episode
+
+    // let returns = {}
+    let returnsForEpisode = {}
+    // console.log("Length of episode: ", episode)
+    
+    // Policy Evaluation loop
+    for(let ind in episode){
+        let key = serializeStateAndAction(episode[ind][0], episode[ind][1])
+        if(returnsForEpisode[key] == undefined) {
+            returnsForEpisode[key] = c.getReward(episode[ind][0])
+            // check to see if in full Returns
+            // add to end of full returns for s,a since this is the first sighting of s,a for the episode 
+            if(returns[key] == undefined) returns[key] = []
+            returns[key].push(c.getReward(episode[ind][0]))
+
+            if(actionValueFunction[serializeState(episode[ind][0])] == undefined){
+                actionValueFunction[serializeState(episode[ind][0])] = {}
+            }            
+            actionValueFunction[serializeState(episode[ind][0])][episode[ind][1]] = mean(returns[key])
+        }
+    } 
+    
+    console.log("Returns from episode: ", Object.values(returnsForEpisode).toString())
+    console.log("Total returns: ", Object.values(returnsForEpisode).reduce((acc, cv) => acc + cv, 0)) 
+
+    // Policy Improvement Loop
+    for(let state in actionValueFunction){
+        let actions = actionValueFunction[state] 
+        let maxValue = -Infinity
+        let maxAction = -1
+        for(let action in actions){
+            if(actions[action] > max) {
+                maxAction = action
+                maxValue = actions[action] 
+            } 
+        }
+        
+        // states are already serialized 
+        p[state].map((item, ind) => {
+            if(maxAction == ind){
+                return 1 - epsilon + (epsilon / actionValueFunction[state].length)
+            } else {
+                return epsilon / actionValueFunction[state].length
+            }            
+        }) 
+    } 
+
+    return [p, returns, actionValueFunction]
 }
 

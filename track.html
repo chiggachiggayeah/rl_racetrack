@@ -65,5 +65,6 @@ document.getElementById("draw-start-btn").addEventListener("click", function(e) 
 document.getElementById("start-train-btn").addEventListener("click", function(e) {
     state.startTraining()
     stateDisplay.innerHTML = setStateDisplay()
+    onPolicy()
 })
 </script>
